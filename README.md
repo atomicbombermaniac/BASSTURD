@@ -2,6 +2,7 @@
 ESP32 bluetooth soundcard with rotary encoder volume control, oled display and needle vu-meters
 
 Warning. This is by no means quality code. Use at your own risk.
+The oled code original source can be found in the respective headers.
 
 This project is based on the ESP-IDF example for a2dp-sink which was changed and adapted to suit my needs.
 For the DAC part, I used an IQaudIO DAC Pro  ( https://cdn.sparkfun.com/assets/e/6/5/a/9/20201209_IQaudIO_v32.pdf page 8 ) which uses PCM5242 and which had to have a small HW change to make it work automatically with the ESP. Basically one resistor had to be moved from one place to another to make the DAC setup itself in a default generic state that just takes and converts data without any software config as it is done when used on the raspberryPI. I used this DAC board because it is very high quality regarding signal, has optional differential outputs that I can connect to my M-AUDIO BX8's and has a nice integrated headphone amp that is the best one I got to test so far.
