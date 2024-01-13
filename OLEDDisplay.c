@@ -69,7 +69,7 @@ OLEDDisplay_t * OLEDDisplay_alloc() {
 	oled->color = WHITE;
 	oled->geometry = GEOMETRY_128_64;
 	oled->textAlignment = TEXT_ALIGN_LEFT;
-	oled->fontData = ArialMT_Plain_10;
+	oled->fontData = ArialMT_Plain_24;//ArialMT_Plain_10;
 	oled->fontTableLookupFunction = DefaultFontTableLookup;
 	oled->buffer = NULL;
 #ifdef OLEDDISPLAY_DOUBLE_BUFFER
@@ -527,8 +527,8 @@ void OLEDDisplay_drawProgressBar(OLEDDisplay_t *oled, uint16_t x, uint16_t y, ui
 
 
 
-  OLEDDisplay_drawHorizontalLine(oled, x, y, width + 1);
-  OLEDDisplay_drawHorizontalLine(oled, x, y + height, width + 1);
+  //OLEDDisplay_drawHorizontalLine(oled, x+1, y, width-1);
+  //OLEDDisplay_drawHorizontalLine(oled, x+1, y + height - 3, width-1);
 
 
   OLEDDisplay_drawVerticalLine(oled, x + peak, y, height);
@@ -634,6 +634,19 @@ void OLEDDisplay_drawStringInternal(OLEDDisplay_t *oled, int16_t xMove, int16_t 
 
 
 void OLEDDisplay_drawString(OLEDDisplay_t *oled, int16_t xMove, int16_t yMove, char * strUser) {
+	
+ 
+
+  // char* text must be freed!
+  char* text = strUser; //utf8 to ASCII MUST FREE BELOW IF USED
+  uint16_t length = strlen(strUser);
+
+  OLEDDisplay_drawStringInternal(oled, xMove, yMove , text, length, OLEDDisplay_getStringWidthLen(oled, text, length));
+
+  // NEED FOR UTF8 if used free(text);
+}
+
+void OLEDDisplay_drawString_old(OLEDDisplay_t *oled, int16_t xMove, int16_t yMove, char * strUser) {
 	printf("DEBUG MARK %d\n",__LINE__);
   uint16_t lineHeight = pgm_read_byte(oled->fontData + HEIGHT_POS);
 
@@ -653,6 +666,7 @@ void OLEDDisplay_drawString(OLEDDisplay_t *oled, int16_t xMove, int16_t yMove, c
     // Calculate center
     yOffset = (lb * lineHeight) / 2;
   }
+  
 	printf("DEBUG MARK %d\n",__LINE__);
 
   uint16_t line = 0;
@@ -667,6 +681,7 @@ void OLEDDisplay_drawString(OLEDDisplay_t *oled, int16_t xMove, int16_t yMove, c
 	printf("DEBUG MARK %d\n",__LINE__);
   // NEED FOR UTF8 if used free(text);
 }
+
 
 #if 0
 void OLEDDisplay_drawStringf(OLEDDisplay_t *oled,  int16_t x, int16_t y, char* buffer, char * format, ... )

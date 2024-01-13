@@ -44,6 +44,7 @@ static inline int16_t _min(int16_t x,int16_t y) { if (x<y) return (x); return(y)
 static inline int16_t _abs(int16_t x) { if (x>=0) return (x); return(-x);}
 
 extern uint8_t level_r, level_l;
+extern void set_rot_vol(uint8_t);
 
 /*******************************
  * STATIC FUNCTION DECLARATIONS
@@ -228,6 +229,7 @@ void bt_i2s_driver_uninstall(void)
 void volume_set_by_controller(uint8_t volume)
 {
     //ESP_LOGI(BT_RC_TG_TAG, "Volume is set by remote controller to: %"PRIu32"%%", (uint32_t)volume * 100 / 0x7f);
+    //set_rot_vol((uint8_t)(volume * 100 / 0x7f));
     /* set the volume in protection of lock */
     _lock_acquire(&s_volume_lock);
     s_volume = volume;
@@ -490,6 +492,7 @@ static void bt_av_hdl_avrc_tg_evt(uint16_t event, void *p_param)
     case ESP_AVRC_TG_SET_ABSOLUTE_VOLUME_CMD_EVT: {
         ESP_LOGI(BT_RC_TG_TAG, "AVRC set absolute volume: %d%%", (int)rc->set_abs_vol.volume * 100 / 0x7f);
         volume_set_by_controller(rc->set_abs_vol.volume);
+        set_rot_vol((uint8_t)(rc->set_abs_vol.volume * 100 / 0x7f));
         break;
     }
     /* when notification registered, this event comes */

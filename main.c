@@ -47,6 +47,7 @@
 #define LOCAL_DEVICE_NAME    "BASSTURD"
 
 volatile  uint8_t level_r, level_l;
+volatile  uint8_t rot_vol = 30;
 static inline int16_t _max(int16_t x,int16_t y) { if (x>y) return (x); return(y);}
 static inline int16_t _min(int16_t x,int16_t y) { if (x<y) return (x); return(y);}
 static inline int16_t _abs(int16_t x) { if (x>=0) return (x); return(-x);}
@@ -164,11 +165,17 @@ static void bt_av_hdl_stack_evt(uint16_t event, void *p_param)
     }
 }
 
+void set_rot_vol(uint8_t vol){
+    rot_vol = vol;
+}
+
 static void i2c_test_task(void *arg) {
     OLEDDisplay_t *oled = OLEDDisplay_init(
         I2C_MASTER_NUM, 0x78, I2C_MASTER_SDA_IO, I2C_MASTER_SCL_IO);
     OLEDDisplay_clear(oled);
     OLEDDisplay_display(oled);
+    OLEDDisplay_mirrorScreen(oled);
+    OLEDDisplay_flipScreenVertically(oled);
     vTaskDelay(250 / portTICK_PERIOD_MS);
 
     // esp32-rotary-encoder requires that the GPIO ISR service is
@@ -190,7 +197,10 @@ static void i2c_test_task(void *arg) {
     QueueHandle_t event_queue = rotary_encoder_create_queue();
     ESP_ERROR_CHECK(rotary_encoder_set_queue(&info, event_queue));
 
-    uint8_t rot_vol = 30;
+    
+    volatile uint8_t old_vol = 30;
+    volatile char vol_string[10];
+    volatile uint8_t current_vol_frame = 0;
     uint8_t update_vol_to_source = 0;
     uint8_t time_since_last_update = 0;
 
@@ -217,12 +227,20 @@ static void i2c_test_task(void *arg) {
         OLEDDisplay_drawProgressBar(oled, 0, 32, 120, 28, local_level_r,
                                     peak_level_r + 2);
 
+        oled->color = INVERSE;
+        OLEDDisplay_drawHorizontalLine(oled, 1, 31, 120);
         OLEDDisplay_drawVerticalLine(oled, 0, 24, 16);
         OLEDDisplay_drawVerticalLine(oled, 25, 24, 16);
         OLEDDisplay_drawVerticalLine(oled, 50, 24, 16);
         OLEDDisplay_drawVerticalLine(oled, 75, 24, 16);
         OLEDDisplay_drawVerticalLine(oled, 100, 24, 16);
         OLEDDisplay_drawVerticalLine(oled, 126, 24, 16);
+
+        if(current_vol_frame)
+        {
+            OLEDDisplay_drawString(oled, 10, 0, vol_string);
+        }
+        oled->color = WHITE;
 
         OLEDDisplay_display(oled);
         //}
@@ -262,6 +280,8 @@ static void i2c_test_task(void *arg) {
             //         event.state.direction ? (event.state.direction == ROTARY_ENCODER_DIRECTION_CLOCKWISE ? "CW" : "CCW") : "NOT_SET", rot_vol);
         }
 
+
+
         if(time_since_last_update < 250){
             time_since_last_update++;
         }
@@ -273,21 +293,19 @@ static void i2c_test_task(void *arg) {
                 volume_set_by_local_host(rot_vol);
             }
         }
-        /*else
-        {
-            // Poll current position and direction
-            rotary_encoder_state_t state = { 0 };
-            ESP_ERROR_CHECK(rotary_encoder_get_state(&info, &state));
-            ESP_LOGI(BT_AV_TAG, "Poll: position %d, direction %s", (int) state.position,
-                     state.direction ? (state.direction == ROTARY_ENCODER_DIRECTION_CLOCKWISE ? "CW" : "CCW") : "NOT_SET");
+        
 
-            // Reset the device
-            if (RESET_AT && (state.position >= RESET_AT || state.position <= -RESET_AT))
-            {
-                ESP_LOGI(BT_AV_TAG, "Reset");
-                ESP_ERROR_CHECK(rotary_encoder_reset(&info));
-            }
-        }*/
+        if(old_vol != rot_vol) //volume changed, show it
+        {
+            old_vol = rot_vol;
+            sprintf(vol_string, "Vol=%d%%", old_vol);
+            current_vol_frame = 50;
+        }
+
+        if(current_vol_frame)//elapse nr of frames to show vol for
+        {
+            current_vol_frame--;
+        }
     }
 
     vTaskDelete(NULL);
@@ -410,7 +428,7 @@ void app_main(void)
     esp_bt_gap_set_pin(pin_type, 4, pin_code);
 
     bt_app_task_start_up();
-    xTaskCreate(i2c_test_task, "i2c_test_task_0", 1024 * 2, (void *)0, 10, NULL);
+    xTaskCreate(i2c_test_task, "i2c_test_task_0", 1024 * 4, (void *)0, 10, NULL);
     /* bluetooth device name, connection mode and profile set up */
     bt_app_work_dispatch(bt_av_hdl_stack_evt, BT_APP_EVT_STACK_UP, NULL, 0, NULL);
 }
